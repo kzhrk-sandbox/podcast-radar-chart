@@ -1,0 +1,74 @@
+# define variable
+SRC := ./src
+PUBLIC := ./public
+TEMP := ./tmp
+DEVELOPMENT := development
+
+.PHONY: help
+help:
+	@echo make install : npm install
+	@echo make start : production
+	@echo make start env=development : development
+
+.PHONY: install
+install:
+	# webpack
+	@npm i -D webpack webpack-cli css-loader vue-loader vue-template-compiler
+	# vue
+	@npm i -d vue vuex
+	# babel
+	@npm i -D babel-core babel-loader babel-preset-env
+	# pug
+	@npm i -D pug-cli
+	# eslint & prettier
+	@npm i -D eslint eslint-config-prettier eslint-plugin-prettier prettier
+	# css preprocessor
+	@npm i -D node-sass postcss-cli cssnano autoprefixer
+	# watch
+	@npm i -D watch
+	# server
+	@npm i -D browser-sync
+	# deploy
+	@npm i -D gh-pages
+	# vendors
+	@npm i -d chart.js
+
+.PHONY: start
+start:
+	@make webpack & make pug & make sass & make postcss & make server
+
+.PHONY: deploy
+deploy:
+	@npx gh-pages -b gh-pages -d public
+
+.PHONY: webpack
+webpack:
+ifeq ($(env), $(DEVELOPMENT))
+	@npx webpack -w --mode development
+else
+	@npx webpack -w --mode production
+endif
+
+.PHONY: pug
+pug:
+ifeq ($(env), $(DEVELOPMENT))
+	@npx pug ${SRC}/pug -Pwo ${PUBLIC}
+else
+	@npx pug ${SRC}/pug -wo ${PUBLIC}
+endif
+
+.PHONY: sass
+sass:
+	@npx node-sass ${SRC}/scss -o ${TEMP}/css && npx node-sass ${SRC}/scss -wo ${TEMP}/css
+
+.PHONY: postcss
+postcss:
+	@npx postcss ${TEMP}/**/*.css -c ./postcss.config.js --no-map -b ${TEMP}/css -x css -d ${PUBLIC}/css -w
+
+.PHONY: server
+server:
+	@npx browser-sync start --server ${PUBLIC}
+
+.PHONY: eslint
+eslint:
+	@npx eslint --fix --ext .js ${SRC}/webpack
